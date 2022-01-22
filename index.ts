@@ -3,16 +3,6 @@ import { numberInputs } from './utilities'
 import path from 'path'
 const JSONdb = require('simple-json-db')
 
-const dir = process.argv[2]
-if (!dir) throw new Error('Please specify directory of files to rename')
-console.log('Renaming clips in', path.resolve(dir), '...')
-
-const wavFilesInDir = fs.readdirSync(dir).filter(
-	(file) =>
-		!file.startsWith('.') && // filter out hidden files
-		(file.endsWith('.wav') || file.endsWith('.mp3')),
-)
-
 function getInfoFromFile(file: string): {
 	computer: number
 	session: number
@@ -66,6 +56,16 @@ function getGhostBpm(overallIndex: number) {
 	return db.get(bpmIndex)
 }
 
+const dir = process.argv[2]
+if (!dir) throw new Error('Please specify directory of files to rename')
+console.log('Renaming clips in', path.resolve(dir), '...')
+
+const wavFilesInDir = fs.readdirSync(dir).filter(
+	(file) =>
+		!file.startsWith('.') && // filter out hidden files
+		(file.endsWith('.wav') || file.endsWith('.mp3')),
+)
+
 wavFilesInDir.forEach((file, i) => {
 	const { computer, session, sessionIndex, extension } = getInfoFromFile(file)
 	const overallIndex = calculateOverallIndex(computer, session, sessionIndex)
@@ -73,5 +73,9 @@ wavFilesInDir.forEach((file, i) => {
 	const bpm = getGhostBpm(overallIndex)
 
 	const newFileName = `#${overallIndex} id=${id} bpm=${bpm} (c-${computer} s-${session} i-${sessionIndex}).${extension}`
-	console.log(newFileName)
+	const newPath = dir + '/' + newFileName
+	const oldPath = dir + '/' + file
+	fs.rename(oldPath, newPath, (err) => {
+		if (err) throw err
+	})
 })
