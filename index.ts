@@ -182,17 +182,13 @@ async function renameAndConvertFile(file: string, outDir, batchSize) {
 	const oldPath = path.join(dir, file)
 	const newMp3FileName = newFileName.replace(/\.wav$/, '.mp3')
 	const newMp3Path = path.join(outDir, 'mp3', outSubdir, newMp3FileName)
-	console.log(`Processing #${overallIndex}...`)
 	await convertToMp3(oldPath, newMp3Path)
 
 	const newWavPath = path.join(outDir, 'wav', outSubdir, newFileName)
 	await move(oldPath, newWavPath)
-	console.log(
-		`Done processing #${overallIndex} ... c-${computer} s-${session} i-${sessionIndex}`,
-	)
 }
 
-async function renameAndConvertFiles(dir, outDir, batchSize) {
+async function renameAndConvertFiles(dir, outDir, batchSize: number) {
 	const wavFilesInDir = fs.readdirSync(dir).filter(
 		(file) =>
 			!file.startsWith('.') && // filter out hidden files
@@ -200,54 +196,69 @@ async function renameAndConvertFiles(dir, outDir, batchSize) {
 	)
 	// await promise for first 40 files, then continue
 
-	async function loopOverNextBatchOfFiles(wavFiles: string[], i = 1) {
-		const lastBatch = batchSize >= wavFiles.length
+	// async function loopOverBatch(wavFiles) {
+	// 	await Promise.all()
+	// }
+	// console.log(wavFilesInDir.length, 'wav files in dir.')
+	// loopOverBatch(wavFilesInDir) {}
 
-		const batch = lastBatch ? wavFiles : wavFiles.slice(0, batchSize)
+	async function loopOverNextBatchOfFiles(wavFiles: string[], i = 1) {
+		const isLastBatch = batchSize >= wavFiles.length
+
+		const batch = isLastBatch ? wavFiles : wavFiles.slice(0, batchSize)
 		const remainingWavFiles = wavFiles.slice(batchSize)
 
 		const elapsedTime = Date.now() - startTime
-		const timePerFile = elapsedTime / (i - 1 * batchSize)
+		const timePerFile = Math.round(elapsedTime / ((i - 1) * batchSize))
+		const elapsedSeconds = Math.round(elapsedTime) / 1000
 		const timeStats =
 			i - 1 > 0 &&
-			`(avg speed = ${timePerFile}/file... elapsedTime = ${elapsedTime})`
+			`(avg speed = ${timePerFile}ms/file... elapsedTime = ${elapsedSeconds}s)`
 
-		console.log(`looping over batch ${i}`, timeStats && timeStats)
+		console.log(`looping over batch ${i}`, timeStats ? timeStats : '' + '...')
 		await Promise.all(
 			batch.map(async (file, j) => {
 				const filesProcessed = i * batchSize + j
 				const progress = `${filesProcessed}/${wavFiles.length}`
-				await renameAndConvertFile(file, outDir, batchSize).then(() => {
-					console.log(`Done processing ${progress} files.\n `)
-				})
+				return await renameAndConvertFile(file, outDir, batchSize)
 			}),
 		)
-
-		// call fn again unless array is empty
 		if (remainingWavFiles.length > 0)
-			loopOverNextBatchOfFiles(remainingWavFiles, i + 1)
+			await loopOverNextBatchOfFiles(remainingWavFiles, i + 1)
 	}
+	// 	// call fn again unless array is empty
 	await loopOverNextBatchOfFiles(wavFilesInDir)
-	console.log('✔ All done!')
+	const elapsedTime = Date.now() - startTime
+	const timePerFile = Math.round(elapsedTime / wavFilesInDir.length)
+	const elapsedSeconds = Math.round(elapsedTime) / 1000
+	console.log(
+		'✔ All done! (avg speed = ',
+		timePerFile + 'ms/file... elapsedTime =',
+		elapsedSeconds + 's)',
+	)
 }
 
 const args = process.argv.slice(2)
 
 let dir = args[0]
 if (!dir) throw new Error('Please specify directory of files to rename')
-dir = path.resolve(dir)
 
 let outDir = args[1]
 if (!outDir) throw new Error('Please specify output directory')
-outDir = path.resolve(outDir)
 
-let numParallelProcesses = args[2]
+let numParallelProcesses = Number(args[2])
 if (!numParallelProcesses)
 	throw new Error('Please specify number of parallel processes')
-numParallelProcesses = path.resolve(numParallelProcesses)
-
-console.log('Renaming clips in', dir, 'and saving to', outDir + '...')
+numParallelProcesses = numParallelProcesses - (numParallelProcesses % 9)
 
 makeOutputDirStructure(outDir)
 const startTime = Date.now()
+console.log(
+	'Renaming clips in',
+	dir,
+	'and saving to',
+	outDir + 'with a batch size of',
+	numParallelProcesses,
+	'(nearest mult of 9)',
+)
 renameAndConvertFiles(dir, outDir, numParallelProcesses)
