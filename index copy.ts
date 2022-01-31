@@ -169,44 +169,35 @@ async function renameAndConvertFiles(dir, outDir) {
 			!file.startsWith('.') && // filter out hidden files
 			(file.endsWith('.wav') || file.endsWith('.mp3')),
 	)
-	await Promise.all(
-		wavFilesInDir.map(async (file, index) => {
-			// this is to rename stem clips rendered from Keyboard Maestro macro "RENDER ALL GHOSTS"
-			// ? Existing overall index needs to be changed for ghosts c-2 s-1, c-2 s-2, c-1 s-3, and c-1 s-4
+	for (let file of wavFilesInDir) {
+		// this is to rename stem clips rendered from Keyboard Maestro macro "RENDER ALL GHOSTS"
+		// ? Existing overall index needs to be changed for ghosts c-2 s-1, c-2 s-2, c-1 s-3, and c-1 s-4
 
-			const {
-				uncorrectedOverallIndex,
-				computer,
-				session,
-				stemName,
-				extension,
-			} = getInfoFromFile(file)
+		const { uncorrectedOverallIndex, computer, session, stemName, extension } =
+			getInfoFromFile(file)
 
-			const sessionIndex = calculateSessionIndex(uncorrectedOverallIndex) // ? does not matter if corrected or not, just takes overallIndex mod 100
-			const overallIndex = calculateOverallIndex(
-				computer,
-				session,
-				sessionIndex,
-			)
-			const id = getGhostId(overallIndex)
-			const bpm = getGhostBpm(overallIndex)
+		const sessionIndex = calculateSessionIndex(uncorrectedOverallIndex) // ? does not matter if corrected or not, just takes overallIndex mod 100
+		const overallIndex = calculateOverallIndex(computer, session, sessionIndex)
+		console.log(computer, session, sessionIndex, overallIndex)
+		const id = getGhostId(overallIndex)
+		const bpm = getGhostBpm(overallIndex)
+		console.log(id, bpm, computer, session)
 
-			const newFileName = `#${overallIndex} ${
-				stemName !== 'All' ? `stem=[${stemName}]` : ''
-			} id=${id} bpm=${bpm} (c-${computer} s-${session} i-${sessionIndex}).${extension}`
-			const outSubdir = getOutSubdir(overallIndex, stemName, outDir)
-			const oldPath = path.join(dir, file)
-			const newMp3FileName = newFileName.replace(/\.wav$/, '.mp3')
-			const newMp3Path = path.join(outDir, 'mp3', outSubdir, newMp3FileName)
-			await convertToMp3(oldPath, newMp3Path)
+		const newFileName = `#${overallIndex} ${
+			stemName !== 'All' ? `stem=[${stemName}]` : ''
+		} id=${id} bpm=${bpm} (c-${computer} s-${session} i-${sessionIndex}).${extension}`
+		const outSubdir = getOutSubdir(overallIndex, stemName, outDir)
+		console.log(overallIndex, outSubdir)
+		const oldPath = path.join(dir, file)
+		const newMp3FileName = newFileName.replace(/\.wav$/, '.mp3')
+		const newMp3Path = path.join(outDir, 'mp3', outSubdir, newMp3FileName)
+		await convertToMp3(oldPath, newMp3Path)
 
-			const newWavPath = path.join(outDir, 'wav', outSubdir, newFileName)
-			await move(oldPath, newWavPath)
-			process.stdout.write(
-				`Done processing #${overallIndex} ... c-${computer} s-${session} i-${sessionIndex}`,
-			)
-		}),
-	)
+		const newWavPath = path.join(outDir, 'wav', outSubdir, newFileName)
+		move(oldPath, newWavPath, (err) => {
+			if (err) throw err
+		})
+	}
 }
 
 let dir = process.argv[2]

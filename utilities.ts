@@ -5,32 +5,34 @@ export function numberInputs(inputs: { [key: string]: string }) {
 	console.log(numberInputs)
 	return numberInputs
 }
-export function move(oldPath, newPath, callback) {
-	fs.rename(oldPath, newPath, function (err) {
-		if (err) {
-			if (err.code === 'EXDEV') {
-				copy()
-			} else {
-				callback(err)
+export async function move(oldPath: fs.PathLike, newPath: fs.PathLike) {
+	await new Promise<void>((resolve, reject) => {
+		fs.rename(oldPath, newPath, function (err) {
+			if (err) {
+				if (err.code === 'EXDEV') {
+					copy(resolve, reject)
+				} else {
+					reject(err)
+				}
+				return
 			}
-			return
-		}
-		callback()
-	})
-
-	function copy() {
-		var readStream = fs.createReadStream(oldPath)
-		var writeStream = fs.createWriteStream(newPath)
-
-		readStream.on('error', callback)
-		writeStream.on('error', callback)
-
-		readStream.on('close', function () {
-			fs.unlink(oldPath, callback)
+			resolve()
 		})
 
-		readStream.pipe(writeStream)
-	}
+		function copy(resolve, reject) {
+			var readStream = fs.createReadStream(oldPath)
+			var writeStream = fs.createWriteStream(newPath)
+
+			readStream.on('error', reject())
+			writeStream.on('error', reject())
+
+			readStream.on('close', function () {
+				fs.unlink(oldPath, reject())
+			})
+
+			readStream.pipe(writeStream)
+		}
+	})
 }
 
 export function makeDir(dirPath: string) {
