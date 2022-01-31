@@ -128,7 +128,7 @@ function makeOutputDirStructure(outDir: string) {
 // 	> masters
 
 function getOutSubdir(overallIndex, stemName) {
-	const folderStartIndex = overallIndex - (overallIndex % 1000) + 1
+	const folderStartIndex = overallIndex - ((overallIndex - 1) % 1000)
 	const folderEndIndex = folderStartIndex + 999
 	const subdirName = `${folderStartIndex}-${folderEndIndex}`
 	if (stemName === 'All') {
