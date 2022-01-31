@@ -206,12 +206,19 @@ async function renameAndConvertFiles(dir, outDir, batchSize) {
 		const batch = lastBatch ? wavFiles : wavFiles.slice(0, batchSize)
 		const remainingWavFiles = wavFiles.slice(batchSize)
 
-		console.log(`looping over batch ${i}`)
+		const elapsedTime = Date.now() - startTime
+		const timePerFile = elapsedTime / (i - 1 * batchSize)
+		const timeStats =
+			i > 0 &&
+			`(avg speed = ${timePerFile}/file... elapsedTime = ${elapsedTime})`
+
+		console.log(`looping over batch ${i}`, timeStats && timeStats)
 		await Promise.all(
 			batch.map(async (file, j) => {
-				const progress = `${i * 5 + j}/${wavFiles.length}`
+				const filesProcessed = i * batchSize + j
+				const progress = `${filesProcessed}/${wavFiles.length}`
 				await renameAndConvertFile(file, outDir, batchSize).then(() => {
-					console.log(`Done processing ${progress} files`)
+					console.log(`Done processing ${progress} files.\n `)
 				})
 			}),
 		)
@@ -242,4 +249,5 @@ numParallelProcesses = path.resolve(numParallelProcesses)
 console.log('Renaming clips in', dir, 'and saving to', outDir + '...')
 
 makeOutputDirStructure(outDir)
+const startTime = Date.now()
 renameAndConvertFiles(dir, outDir, numParallelProcesses)
