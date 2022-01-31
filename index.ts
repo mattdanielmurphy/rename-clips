@@ -225,13 +225,20 @@ async function renameAndConvertFiles(dir, outDir) {
 	console.log('✔ All done!')
 }
 
-let dir = process.argv[2]
+const args = process.argv.slice(2)
+
+let dir = args[0]
 if (!dir) throw new Error('Please specify directory of files to rename')
 dir = path.resolve(dir)
 
-let outDir = process.argv[3]
+let outDir = args[1]
 if (!outDir) throw new Error('Please specify output directory')
 outDir = path.resolve(outDir)
+
+let numParallelProcesses = args[2]
+if (!numParallelProcesses)
+	throw new Error('Please specify number of parallel processes')
+numParallelProcesses = path.resolve(numParallelProcesses)
 
 console.log('Renaming clips in', dir, 'and saving to', outDir + '...')
 
