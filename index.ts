@@ -64,6 +64,7 @@ function getGhostId(overallIndex: number) {
 	if (!results) {
 		errors.push({ desc: 'could not find ghostId', overallIndex })
 		errorsDb.set('errors', errors)
+		return undefined
 	}
 	const [foundGhost] = results
 	return foundGhost
@@ -175,24 +176,25 @@ async function renameAndConvertFiles(dir, outDir) {
 
 		const sessionIndex = calculateSessionIndex(uncorrectedOverallIndex) // ? does not matter if corrected or not, just takes overallIndex mod 100
 		const overallIndex = calculateOverallIndex(computer, session, sessionIndex)
-		const id = getGhostId(overallIndex)
-		const bpm = getGhostBpm(overallIndex)
-		console.log(id, bpm, computer, session)
+		console.log(computer, session, sessionIndex, overallIndex)
+		// const id = getGhostId(overallIndex)
+		// const bpm = getGhostBpm(overallIndex)
+		// console.log(id, bpm, computer, session)
 
-		const newFileName = `#${overallIndex} ${
-			stemName !== 'All' ? `stem=[${stemName}]` : ''
-		} id=${id} bpm=${bpm} (c-${computer} s-${session} i-${sessionIndex}).${extension}`
-		const outSubdir = getOutSubdir(overallIndex, stemName, outDir)
-		console.log(overallIndex, outSubdir)
-		const oldPath = path.join(dir, file)
-		const newMp3FileName = newFileName.replace(/\.wav$/, '.mp3')
-		const newMp3Path = path.join(outDir, 'mp3', outSubdir, newMp3FileName)
-		await convertToMp3(oldPath, newMp3Path)
+		// const newFileName = `#${overallIndex} ${
+		// 	stemName !== 'All' ? `stem=[${stemName}]` : ''
+		// } id=${id} bpm=${bpm} (c-${computer} s-${session} i-${sessionIndex}).${extension}`
+		// const outSubdir = getOutSubdir(overallIndex, stemName, outDir)
+		// console.log(overallIndex, outSubdir)
+		// const oldPath = path.join(dir, file)
+		// const newMp3FileName = newFileName.replace(/\.wav$/, '.mp3')
+		// const newMp3Path = path.join(outDir, 'mp3', outSubdir, newMp3FileName)
+		// await convertToMp3(oldPath, newMp3Path)
 
-		const newWavPath = path.join(outDir, 'wav', outSubdir, newFileName)
-		move(oldPath, newWavPath, (err) => {
-			if (err) throw err
-		})
+		// const newWavPath = path.join(outDir, 'wav', outSubdir, newFileName)
+		// move(oldPath, newWavPath, (err) => {
+		// 	if (err) throw err
+		// })
 	}
 }
 
