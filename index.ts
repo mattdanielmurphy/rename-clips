@@ -1,21 +1,32 @@
+import { makeDir, move, numberInputs } from './utilities'
+
+import { exec } from 'child_process'
+import ffmpeg from 'fluent-ffmpeg'
 import fs from 'fs'
-import { numberInputs } from './utilities'
 import path from 'path'
+
 const JSONdb = require('simple-json-db')
 
-function getInfoFromFile(file: string): {
-	computer: number
-	session: number
-	sessionIndex: number
-	extension: string
-} {
-	const regex = /computer-(\d{1,2}) session-(\d{1,2}) ghost-(\d{1,3})\.(.*)/
+function getInfoFromFile(file: string) {
+	const regex = /#(\d{1,4}) \(c-(\d{1,2}) s-(\d{1,2})\) (.*)\.(.*)/
 	// /#?(?<overallIndex>\d{1,4})?\s?(?<stemName>\w*)?\s?(?<id>\d{4}-\d{4}-\d{4}-\d{4}-\d{4}-\d{4})?\s?\(?(?:c-|computer-)(?<computer>\d{1,2}).*(?:s-|session-)(?<session>\d{1,2}).*(?:i-|ghost-)(?<sessionIndex>\d{1,3}).*\.(?<extension>.*)$/
-	const matches = regex.exec(file)
-	if (!matches) return
-	const [, computer, session, sessionIndex] = matches.map((n) => +n)
+	const regexResults = regex.exec(file)
+	if (!regexResults) return
+	const matches = regexResults.slice(1)
+	const [uncorrectedOverallIndex, computer, session] = matches.map((n) => +n)
+	const [stemName, extension] = matches.slice(3)
 
-	return { computer, session, sessionIndex, extension: matches[4] }
+	return {
+		uncorrectedOverallIndex,
+		computer,
+		session,
+		stemName,
+		extension,
+	}
+}
+
+function calculateSessionIndex(overallIndex) {
+	return overallIndex % 100
 }
 
 function calculateOverallIndex(computer, session, sessionIndex) {
@@ -56,26 +67,137 @@ function getGhostBpm(overallIndex: number) {
 	return db.get(bpmIndex)
 }
 
-const dir = process.argv[2]
-if (!dir) throw new Error('Please specify directory of files to rename')
-console.log('Renaming clips in', path.resolve(dir), '...')
+function makeOutputDirStructure(outDir: string) {
+	function makeStemSubdirs(stemDir: string, i: number) {
+		for (let j = 1; j <= 1000; j++) {
+			const overallIndex = (i - 1) * 1000 + j
+			const stemSubdir = path.join(stemDir, String(overallIndex))
+			makeDir(stemSubdir)
+		}
+	}
 
-const wavFilesInDir = fs.readdirSync(dir).filter(
-	(file) =>
-		!file.startsWith('.') && // filter out hidden files
-		(file.endsWith('.wav') || file.endsWith('.mp3')),
-)
+	function makeStemAndMasterDirs(subdir: string, i: number) {
+		const stemDir = path.join(subdir, 'stems')
+		const masterDir = path.join(subdir, 'masters')
+		makeDir(stemDir)
+		makeDir(masterDir)
+		makeStemSubdirs(stemDir, i)
+	}
 
-wavFilesInDir.forEach((file, i) => {
-	const { computer, session, sessionIndex, extension } = getInfoFromFile(file)
-	const overallIndex = calculateOverallIndex(computer, session, sessionIndex)
-	const id = getGhostId(overallIndex)
-	const bpm = getGhostBpm(overallIndex)
+	function make10SubdirsWithStemAndMasterDirs(outDir: string) {
+		for (let i = 1; i <= 10; i++) {
+			let subdir = path.join(outDir, `${(i - 1) * 1000 + 1}-${1000 * i}`)
+			makeDir(subdir)
+			makeStemAndMasterDirs(subdir, i)
+		}
+	}
 
-	const newFileName = `#${overallIndex} id=${id} bpm=${bpm} (c-${computer} s-${session} i-${sessionIndex}).${extension}`
-	const newPath = dir + '/' + newFileName
-	const oldPath = dir + '/' + file
-	fs.rename(oldPath, newPath, (err) => {
-		if (err) throw err
+	console.log('Making output directory structure...')
+	const wavOutDir = path.join(outDir, 'wav')
+	const mp3OutDir = path.join(outDir, 'mp3')
+	makeDir(wavOutDir)
+	makeDir(mp3OutDir)
+	make10SubdirsWithStemAndMasterDirs(wavOutDir)
+	make10SubdirsWithStemAndMasterDirs(mp3OutDir)
+	console.log('Done')
+}
+
+// * Plan
+// 1. rename files
+// 2. convert files, moving masters to separate dir
+// ? structure:
+// inDir: Ghost Exports - January 25, 2022
+// outDir: Ghost Exports
+// created structure:
+// Ghost Exports
+// 1-1000
+// 	> stems
+// 	> > 120
+// 	> > > 1Drums
+// 	> > > 3J37 PERC
+// 	> masters
+
+function getOutSubdir(overallIndex, stemName, outDir) {
+	const folderStartIndex = overallIndex - (overallIndex % 1000) + 1
+	const folderEndIndex = folderStartIndex + 999
+	const subdirName = `${folderStartIndex}-${folderEndIndex}`
+	if (stemName === 'All') {
+		return path.join(subdirName, 'masters')
+	} else {
+		return path.join(subdirName, 'stems', String(overallIndex))
+	}
+}
+
+async function convertToMp3(oldPath, newPath) {
+	return new Promise((resolve, reject) => {
+		let ffmpegCommand = ffmpeg()
+			.setFfmpegPath('ffmpeg')
+			.input(oldPath)
+			.noVideo()
+
+		ffmpegCommand
+			.outputOptions('-b:a', '320k')
+			.on('start', (cmdline) => {
+				// console.log(cmdline) // ? Enable for logging
+			})
+			.on('end', () => {
+				// process.stdout.write(
+				// 	`Successfully converted ${filesConverted++} of ${
+				// 		filesInDir.length
+				// 	} files.\r`,
+				// )
+				resolve(true)
+			})
+			.on('error', reject)
+			.saveToFile(newPath)
 	})
-})
+}
+
+async function renameAndConvertFiles(dir, outDir) {
+	const wavFilesInDir = fs.readdirSync(dir).filter(
+		(file) =>
+			!file.startsWith('.') && // filter out hidden files
+			(file.endsWith('.wav') || file.endsWith('.mp3')),
+	)
+	for (let file of wavFilesInDir) {
+		// this is to rename stem clips rendered from Keyboard Maestro macro "RENDER ALL GHOSTS"
+		// ? Existing overall index needs to be changed for ghosts c-2 s-1, c-2 s-2, c-1 s-3, and c-1 s-4
+
+		const { uncorrectedOverallIndex, computer, session, stemName, extension } =
+			getInfoFromFile(file)
+
+		const sessionIndex = calculateSessionIndex(uncorrectedOverallIndex) // ? does not matter if corrected or not, just takes overallIndex mod 100
+		const overallIndex = calculateOverallIndex(computer, session, sessionIndex)
+		const id = getGhostId(overallIndex)
+		const bpm = getGhostBpm(overallIndex)
+		console.log(id, bpm, computer, session)
+
+		const newFileName = `#${overallIndex} ${
+			stemName !== 'All' ? `stem=[${stemName}]` : ''
+		} id=${id} bpm=${bpm} (c-${computer} s-${session} i-${sessionIndex}).${extension}`
+		const outSubdir = getOutSubdir(overallIndex, stemName, outDir)
+		console.log(overallIndex, outSubdir)
+		const oldPath = path.join(dir, file)
+		const newMp3FileName = newFileName.replace(/\.wav$/, '.mp3')
+		const newMp3Path = path.join(outDir, 'mp3', outSubdir, newMp3FileName)
+		await convertToMp3(oldPath, newMp3Path)
+
+		const newWavPath = path.join(outDir, 'wav', outSubdir, newFileName)
+		move(oldPath, newWavPath, (err) => {
+			if (err) throw err
+		})
+	}
+}
+
+let dir = process.argv[2]
+if (!dir) throw new Error('Please specify directory of files to rename')
+dir = path.resolve(dir)
+
+let outDir = process.argv[3]
+if (!outDir) throw new Error('Please specify output directory')
+outDir = path.resolve(outDir)
+
+console.log('Renaming clips in', dir, 'and saving to', outDir + '...')
+
+makeOutputDirStructure(outDir)
+renameAndConvertFiles(dir, outDir)
