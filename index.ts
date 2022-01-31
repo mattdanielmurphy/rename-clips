@@ -127,7 +127,7 @@ function makeOutputDirStructure(outDir: string) {
 // 	> > > 3J37 PERC
 // 	> masters
 
-function getOutSubdir(overallIndex, stemName, outDir) {
+function getOutSubdir(overallIndex, stemName) {
 	const folderStartIndex = overallIndex - (overallIndex % 1000) + 1
 	const folderEndIndex = folderStartIndex + 999
 	const subdirName = `${folderStartIndex}-${folderEndIndex}`
@@ -163,7 +163,7 @@ async function convertToMp3(oldPath, newPath) {
 	})
 }
 
-async function renameAndConvertFile(file: string) {
+async function renameAndConvertFile(file: string, outDir, batchSize) {
 	// this is to rename stem clips rendered from Keyboard Maestro macro "RENDER ALL GHOSTS"
 	// ? Existing overall index needs to be changed for ghosts c-2 s-1, c-2 s-2, c-1 s-3, and c-1 s-4
 
@@ -178,7 +178,7 @@ async function renameAndConvertFile(file: string) {
 	const newFileName = `#${overallIndex} ${
 		stemName !== 'All' ? `stem=[${stemName}]` : ''
 	} id=${id} bpm=${bpm} (c-${computer} s-${session} i-${sessionIndex}).${extension}`
-	const outSubdir = getOutSubdir(overallIndex, stemName, outDir)
+	const outSubdir = getOutSubdir(overallIndex, stemName)
 	const oldPath = path.join(dir, file)
 	const newMp3FileName = newFileName.replace(/\.wav$/, '.mp3')
 	const newMp3Path = path.join(outDir, 'mp3', outSubdir, newMp3FileName)
@@ -192,7 +192,7 @@ async function renameAndConvertFile(file: string) {
 	)
 }
 
-async function renameAndConvertFiles(dir, outDir) {
+async function renameAndConvertFiles(dir, outDir, batchSize) {
 	const wavFilesInDir = fs.readdirSync(dir).filter(
 		(file) =>
 			!file.startsWith('.') && // filter out hidden files
@@ -201,7 +201,6 @@ async function renameAndConvertFiles(dir, outDir) {
 	// await promise for first 40 files, then continue
 
 	async function loopOverNextBatchOfFiles(wavFiles: string[], i = 1) {
-		const batchSize = 5
 		const lastBatch = batchSize >= wavFiles.length
 
 		const batch = lastBatch ? wavFiles : wavFiles.slice(0, batchSize)
@@ -211,7 +210,7 @@ async function renameAndConvertFiles(dir, outDir) {
 		await Promise.all(
 			batch.map(async (file, j) => {
 				const progress = `${i * 5 + j}/${wavFiles.length}`
-				await renameAndConvertFile(file).then(() => {
+				await renameAndConvertFile(file, outDir, batchSize).then(() => {
 					console.log(`Done processing ${progress} files`)
 				})
 			}),
@@ -243,4 +242,4 @@ numParallelProcesses = path.resolve(numParallelProcesses)
 console.log('Renaming clips in', dir, 'and saving to', outDir + '...')
 
 makeOutputDirStructure(outDir)
-renameAndConvertFiles(dir, outDir)
+renameAndConvertFiles(dir, outDir, numParallelProcesses)
