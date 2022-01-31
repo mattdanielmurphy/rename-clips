@@ -209,7 +209,7 @@ async function renameAndConvertFiles(dir, outDir, batchSize) {
 		const elapsedTime = Date.now() - startTime
 		const timePerFile = elapsedTime / (i - 1 * batchSize)
 		const timeStats =
-			i > 0 &&
+			i - 1 > 0 &&
 			`(avg speed = ${timePerFile}/file... elapsedTime = ${elapsedTime})`
 
 		console.log(`looping over batch ${i}`, timeStats && timeStats)
