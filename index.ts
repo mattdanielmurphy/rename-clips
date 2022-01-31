@@ -202,20 +202,23 @@ async function renameAndConvertFiles(dir, outDir, batchSize: number) {
 	// console.log(wavFilesInDir.length, 'wav files in dir.')
 	// loopOverBatch(wavFilesInDir) {}
 
+	function logProgress(i, wavFiles) {
+		const elapsedTime = Date.now() - startTime
+		const timePerFile = Math.round(elapsedTime / (i * batchSize))
+		const elapsedSeconds = Math.round(elapsedTime) / 1000
+		const timeStats = `(avg speed = ${timePerFile}ms/file... elapsedTime = ${elapsedSeconds}s)`
+		console.log(
+			`${i * batchSize}/${wavFiles.length} files processed.`,
+			timeStats,
+		)
+	}
+
 	async function loopOverNextBatchOfFiles(wavFiles: string[], i = 1) {
 		const isLastBatch = batchSize >= wavFiles.length
 
 		const batch = isLastBatch ? wavFiles : wavFiles.slice(0, batchSize)
 		const remainingWavFiles = wavFiles.slice(batchSize)
 
-		const elapsedTime = Date.now() - startTime
-		const timePerFile = Math.round(elapsedTime / ((i - 1) * batchSize))
-		const elapsedSeconds = Math.round(elapsedTime) / 1000
-		const timeStats =
-			i - 1 > 0 &&
-			`(avg speed = ${timePerFile}ms/file... elapsedTime = ${elapsedSeconds}s)`
-
-		console.log(`looping over batch ${i}`, timeStats ? timeStats : '' + '...')
 		await Promise.all(
 			batch.map(async (file, j) => {
 				const filesProcessed = i * batchSize + j
@@ -223,6 +226,8 @@ async function renameAndConvertFiles(dir, outDir, batchSize: number) {
 				return await renameAndConvertFile(file, outDir, batchSize)
 			}),
 		)
+
+		logProgress(i, wavFiles)
 		if (remainingWavFiles.length > 0)
 			await loopOverNextBatchOfFiles(remainingWavFiles, i + 1)
 	}
