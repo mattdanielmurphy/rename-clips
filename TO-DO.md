@@ -1,4 +1,3 @@
 # To do
-- implement parallel processing
-  - generate an array of promises
-  - Promise.all(arrayOfPromises)
+- fix off by 1 error:
+  - trying to save #1000 to 1001-2000 
