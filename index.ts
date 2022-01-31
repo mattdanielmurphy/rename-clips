@@ -210,7 +210,7 @@ async function renameAndConvertFiles(dir, outDir) {
 		console.log(`looping over batch ${i}`)
 		await Promise.all(
 			batch.map(async (file, j) => {
-				const progress = `${i * 5 + j}/${remainingWavFiles.length}`
+				const progress = `${i * 5 + j}/${wavFiles.length}`
 				await renameAndConvertFile(file).then(() => {
 					console.log(`Done processing ${progress} files`)
 				})
