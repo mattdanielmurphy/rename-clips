@@ -56,9 +56,16 @@ interface Ghost {
 function getGhostId(overallIndex: number) {
 	const db = new JSONdb('db.json')
 	const ghosts: { [index: string]: Ghost } = db.get('ghosts')
-	const [foundGhost] = Object.entries(ghosts).find(([id, ghost]) => {
+	const results = Object.entries(ghosts).find(([id, ghost]) => {
 		return overallIndex === ghost.sourceAbletonFileInfo.overallIndex
 	})
+	const errorsDb = new JSONdb('errors.json')
+	const errors = []
+	if (!results) {
+		errors.push({ desc: 'could not find ghostId', overallIndex })
+		errorsDb.set('errors', errors)
+	}
+	const [foundGhost] = results
 	return foundGhost
 }
 function getGhostBpm(overallIndex: number) {
