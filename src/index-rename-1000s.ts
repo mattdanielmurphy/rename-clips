@@ -73,7 +73,9 @@ function getGhostId(overallIndex: number) {
 }
 function getGhostBpm(overallIndex: number) {
 	const db = new JSONdb('bpms.json')
-	const bpmIndex = (overallIndex % 1000) - 1
+
+	let bpmIndex = (overallIndex % 1000) - 1
+	if (bpmIndex === -1) bpmIndex = 999
 	return db.get(bpmIndex)
 }
 
@@ -222,12 +224,11 @@ async function renameAndConvertFiles(dir, outDir, batchSize: number) {
 		await Promise.all(
 			batch.map(async (file, j) => {
 				const filesProcessed = i * batchSize + j
-				const progress = `${filesProcessed}/${wavFiles.length}`
 				return await renameAndConvertFile(file, outDir, batchSize)
 			}),
 		)
 
-		logProgress(i, wavFiles)
+		logProgress(i, wavFilesInDir)
 		if (remainingWavFiles.length > 0)
 			await loopOverNextBatchOfFiles(remainingWavFiles, i + 1)
 	}
@@ -248,22 +249,53 @@ const args = process.argv.slice(2)
 let dir = args[0]
 if (!dir) throw new Error('Please specify directory of files to rename')
 
-let outDir = args[1]
-if (!outDir) throw new Error('Please specify output directory')
+// let outDir = args[1]
+// if (!outDir) throw new Error('Please specify output directory')
 
-let numParallelProcesses = Number(args[2])
-if (!numParallelProcesses)
-	throw new Error('Please specify number of parallel processes')
-numParallelProcesses = numParallelProcesses - (numParallelProcesses % 9)
+// let numParallelProcesses = Number(args[2])
+// if (!numParallelProcesses)
+// 	throw new Error('Please specify number of parallel processes')
+// numParallelProcesses = numParallelProcesses - (numParallelProcesses % 9)
 
-makeOutputDirStructure(outDir)
+// makeOutputDirStructure(outDir)
 const startTime = Date.now()
-console.log(
-	'Renaming clips in',
-	dir,
-	'and saving to',
-	outDir + 'with a batch size of',
-	numParallelProcesses,
-	'(nearest mult of 9)',
-)
-renameAndConvertFiles(dir, outDir, numParallelProcesses)
+// console.log(
+// 	'Renaming clips in',
+// 	dir,
+// 	'and saving to',
+// 	outDir + 'with a batch size of',
+// 	numParallelProcesses,
+// 	'(nearest mult of 9)',
+// )
+// renameAndConvertFiles(dir, outDir, numParallelProcesses)
+function rename1000s(dir: string) {
+	const pathsToMasters = [
+		path.join('mp3', '1-1000', 'masters'),
+		path.join('mp3', '1001-2000', 'masters'),
+		path.join('wav', '1-1000', 'masters'),
+		path.join('wav', '1001-2000', 'masters'),
+	]
+
+	const pathsToStems = [
+		path.join('mp3', '1-1000', 'stems', '1000'),
+		path.join('mp3', '1001-2000', 'stems', '2000'),
+		path.join('wav', '1-1000', 'stems', '1000'),
+		path.join('wav', '1001-2000', 'stems', '2000'),
+	]
+
+	pathsToMasters.forEach((pathToMaster) => {
+		// const masterFile = await fs.readdir(pathToMaster, (err, masterFile) => {
+		// 	return
+		// });
+		const indexMatches = /#(\d{1,4})/.exec(pathToMaster)
+		console.log(indexMatches)
+		// console.log(overallIndex)
+		// const overallIndex = +indexMatches[1]
+		// const bpm = getGhostBpm(overallIndex)
+		// const renamedPath = pathToMaster.replace('undefined', bpm)
+		// console.log(pathToMaster, renamedPath)
+		// move(pathToMaster, renamedPath)
+	})
+}
+
+rename1000s(dir)
