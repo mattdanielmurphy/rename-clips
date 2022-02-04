@@ -133,9 +133,4 @@ dist
 .pnp.*
 
 # test files
-test/
-test copy/
-test copy old/
-out/
-test/
-test
+test-folders/
