@@ -252,10 +252,9 @@ if (!dir) throw new Error('Please specify directory of files to rename')
 let outDir = args[1]
 if (!outDir) throw new Error('Please specify output directory')
 
-let numParallelProcesses = Number(args[2])
-if (!numParallelProcesses)
-	throw new Error('Please specify number of parallel processes')
-numParallelProcesses = numParallelProcesses - (numParallelProcesses % 9)
+let numThreads = Number(args[2]) || 27
+if (!numThreads) throw new Error('Please specify number of parallel processes')
+numThreads = numThreads - (numThreads % 9)
 
 makeOutputDirStructure(outDir)
 const startTime = Date.now()
@@ -263,8 +262,8 @@ console.log(
 	'Renaming clips in',
 	dir,
 	'and saving to',
-	outDir + 'with a batch size of',
-	numParallelProcesses,
-	'(nearest mult of 9)',
+	outDir + 'across',
+	numThreads,
+	'threads (nearest mult of 9)',
 )
-renameAndConvertFiles(dir, outDir, numParallelProcesses)
+renameAndConvertFiles(dir, outDir, numThreads)
