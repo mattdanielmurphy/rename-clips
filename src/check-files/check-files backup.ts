@@ -3,36 +3,6 @@
 import fs from 'fs/promises'
 import fsSync from 'fs'
 import path from 'path'
-// show number of files in mp3/ and wav/ master subfolders
-//	mp3/1-1000/masters
-//	mp3/1001-2000/masters
-//	wav/1-1000/masters
-//	wav/1001-2000/masters
-// show number of stem-folders (with 9 stems) in mp3/ and wav/ subfolders
-//	mp3/1-1000/stems/[1FILT DRUMS.mp3, 8 more stems]...
-//	mp3/1001-2000/stems/[1FILT DRUMS.mp3, 8 more stems]...
-//	wav/1-1000/stems/[1FILT DRUMS.mp3, 8 more stems]...
-//	wav/1001-2000/stems/[1FILT DRUMS.mp3, 8 more stems]...
-
-// output:
-//*## MASTERS - MP3
-// 	   1-1000://? ✔ (1000 files found)
-// 	1001-2000://! ✘ - 516 files found
-// 	2001-10k ://! ✘ - 0 files found
-
-//*## MASTERS - WAV
-// 	   1-1000://? ✔ (1000 files found)
-// 	1001-2000://! ✘ - 0 files found
-// 	2001-3000://! ✘ - 153 files found
-// 	3001-10k ://! ✘ - 153 files found
-//
-//*## STEMS - MP3
-// 	   		1-1000://? ✔ (1000 folders have 9 stems)
-// 	   2001-3000://! ✘ - (1000 folders have 9 stems)
-// ...
-//*## STEMS - WAV
-// 	   1-1000://? ✔ (1000 files found)
-// ...
 
 async function getNumberOfFilesInDir(dir: string): Promise<number> {
 	// console.log('reading dir', dir)
@@ -50,11 +20,13 @@ async function countFilesInGroup(groupDir: string, groupIndex: number) {
 		path.join(groupDir, name),
 		name,
 	])
+
 	const data: {
 		masters?: number
 		stems?: number[]
 		ghostsWithAllStems: number
 	} = { ghostsWithAllStems: 0 }
+
 	for (const [subdirPath, subdirName] of subdirs) {
 		if (!fsSync.existsSync(subdirPath)) continue
 		if (subdirName === 'masters') {
@@ -126,3 +98,34 @@ const [exportsDir] = args
 console.log('Checking exports dir at', exportsDir)
 
 checkGhostExports(exportsDir)
+
+// show number of files in mp3/ and wav/ master subfolders
+//	mp3/1-1000/masters
+//	mp3/1001-2000/masters
+//	wav/1-1000/masters
+//	wav/1001-2000/masters
+// show number of stem-folders (with 9 stems) in mp3/ and wav/ subfolders
+//	mp3/1-1000/stems/[1FILT DRUMS.mp3, 8 more stems]...
+//	mp3/1001-2000/stems/[1FILT DRUMS.mp3, 8 more stems]...
+//	wav/1-1000/stems/[1FILT DRUMS.mp3, 8 more stems]...
+//	wav/1001-2000/stems/[1FILT DRUMS.mp3, 8 more stems]...
+
+// output:
+//*## MASTERS - MP3
+// 	   1-1000://? ✔ (1000 files found)
+// 	1001-2000://! ✘ - 516 files found
+// 	2001-10k ://! ✘ - 0 files found
+
+//*## MASTERS - WAV
+// 	   1-1000://? ✔ (1000 files found)
+// 	1001-2000://! ✘ - 0 files found
+// 	2001-3000://! ✘ - 153 files found
+// 	3001-10k ://! ✘ - 153 files found
+//
+//*## STEMS - MP3
+// 	   		1-1000://? ✔ (1000 folders have 9 stems)
+// 	   2001-3000://! ✘ - (1000 folders have 9 stems)
+// ...
+//*## STEMS - WAV
+// 	   1-1000://? ✔ (1000 files found)
+// ...
