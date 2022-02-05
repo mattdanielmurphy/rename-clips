@@ -165,7 +165,13 @@ async function convertToMp3(oldPath, newPath) {
 	})
 }
 
-async function renameAndConvertFile(file: string, outDir, batchSize) {
+async function renameAndConvertFile(
+	file: string,
+	dir,
+	outDir,
+	batchSize,
+	mode,
+) {
 	// this is to rename stem clips rendered from Keyboard Maestro macro "RENDER ALL GHOSTS"
 	// ? Existing overall index needs to be changed for ghosts c-2 s-1, c-2 s-2, c-1 s-3, and c-1 s-4
 
@@ -182,15 +188,17 @@ async function renameAndConvertFile(file: string, outDir, batchSize) {
 	} id=${id} bpm=${bpm} (c-${computer} s-${session} i-${sessionIndex}).${extension}`
 	const outSubdir = getOutSubdir(overallIndex, stemName)
 	const oldPath = path.join(dir, file)
-	const newMp3FileName = newFileName.replace(/\.wav$/, '.mp3')
-	const newMp3Path = path.join(outDir, 'mp3', outSubdir, newMp3FileName)
-	await convertToMp3(oldPath, newMp3Path)
+	if (mode === 'rename-and-convert') {
+		const newMp3FileName = newFileName.replace(/\.wav$/, '.mp3')
+		const newMp3Path = path.join(outDir, 'mp3', outSubdir, newMp3FileName)
+		await convertToMp3(oldPath, newMp3Path)
+	}
 
 	const newWavPath = path.join(outDir, 'wav', outSubdir, newFileName)
 	await move(oldPath, newWavPath)
 }
 
-async function renameAndConvertFiles(dir, outDir, batchSize: number) {
+async function renameAndConvertFiles(dir, outDir, batchSize: number, mode) {
 	const wavFilesInDir = fs.readdirSync(dir).filter(
 		(file) =>
 			!file.startsWith('.') && // filter out hidden files
@@ -224,7 +232,7 @@ async function renameAndConvertFiles(dir, outDir, batchSize: number) {
 		await Promise.all(
 			batch.map(async (file, j) => {
 				const filesProcessed = i * batchSize + j
-				return await renameAndConvertFile(file, outDir, batchSize)
+				return await renameAndConvertFile(file, dir, outDir, batchSize, mode)
 			}),
 		)
 
@@ -244,26 +252,32 @@ async function renameAndConvertFiles(dir, outDir, batchSize: number) {
 	)
 }
 
-const args = process.argv.slice(2)
+function start(mode) {
+	const args = process.argv.slice(2)
 
-let dir = args[0]
-if (!dir) throw new Error('Please specify directory of files to rename')
+	let dir = args[0]
+	if (!dir) throw new Error('Please specify directory of files to rename')
 
-let outDir = args[1]
-if (!outDir) throw new Error('Please specify output directory')
+	let outDir = args[1]
+	if (!outDir) throw new Error('Please specify output directory')
 
-let numThreads = Number(args[2]) || 27
-if (!numThreads) throw new Error('Please specify number of parallel processes')
-numThreads = numThreads - (numThreads % 9)
+	let numThreads = Number(args[2]) || 27
+	if (!numThreads)
+		throw new Error('Please specify number of parallel processes')
+	numThreads = numThreads - (numThreads % 9)
 
-makeOutputDirStructure(outDir)
+	makeOutputDirStructure(outDir)
+	console.log(
+		'Renaming clips in',
+		dir,
+		'and saving to',
+		outDir + 'across',
+		numThreads,
+		'threads (nearest mult of 9)',
+	)
+
+	renameAndConvertFiles(dir, outDir, numThreads, mode)
+}
+
 const startTime = Date.now()
-console.log(
-	'Renaming clips in',
-	dir,
-	'and saving to',
-	outDir + 'across',
-	numThreads,
-	'threads (nearest mult of 9)',
-)
-renameAndConvertFiles(dir, outDir, numThreads)
+start('rename')
