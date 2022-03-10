@@ -86,7 +86,7 @@ const prettyNames = {
 	'5PITCH MELODIC': 'Sample',
 }
 
-const pathToContainingDir = path.resolve(process.targv[2])
+const pathToContainingDir = path.resolve(process.argv[2])
 if (!pathToContainingDir) {
 	throw Error(
 		"Must provide path to containing directory. (Folder that contains a 'stems' folder and a 'masters' folder)",
