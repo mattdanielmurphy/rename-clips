@@ -86,7 +86,7 @@ const prettyNames = {
 	'5PITCH MELODIC': 'Sample',
 }
 
-const pathToContainingDir = path.resolve(process.argv[2])
+const pathToContainingDir = path.resolve(process.targv[2])
 if (!pathToContainingDir) {
 	throw Error(
 		"Must provide path to containing directory. (Folder that contains a 'stems' folder and a 'masters' folder)",
@@ -98,7 +98,11 @@ const subContainingDirs = getNonHiddenFilesInDir(pathToContainingDir)
 
 subContainingDirs.forEach((subContainingDir) => {
 	// dir = 1-1000, etc
-	if (['7001-8000', '8001-9000', '9001-10000'].includes(subContainingDir))
+	if (
+		['1-1000', '7001-8000', '8001-9000', '9001-10000'].includes(
+			subContainingDir,
+		)
+	)
 		return
 
 	const pathToStemsInSubContainingDir = path.join(
@@ -119,6 +123,7 @@ subContainingDirs.forEach((subContainingDir) => {
 	console.log(`Processing subfolder ${subContainingDir}...`)
 
 	dirs.forEach((dirName) => {
+		if (+dirName < 2750) return
 		console.log(`zipping stem ${dirName}...`)
 		const pathToDir = path.join(pathToStemsInSubContainingDir, dirName)
 		const originalStemNames = getNonHiddenFilesInDir(pathToDir)
