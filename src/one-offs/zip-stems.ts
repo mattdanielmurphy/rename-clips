@@ -99,7 +99,7 @@ const subContainingDirs = getNonHiddenFilesInDir(pathToContainingDir)
 subContainingDirs.forEach((subContainingDir) => {
 	// dir = 1-1000, etc
 	if (
-		['1-1000', '7001-8000', '8001-9000', '9001-10000'].includes(
+		['1-1000', '1001-2000', '7001-8000', '8001-9000', '9001-10000'].includes(
 			subContainingDir,
 		)
 	)
