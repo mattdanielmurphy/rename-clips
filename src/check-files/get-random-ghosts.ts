@@ -43,9 +43,15 @@ const pathToLinksDir = args[1]
 
 async function createLinksToRandomGhosts(n: number) {
 	const ghosts = await getListOfPathnamesToAllGhosts(outputDir)
-	for (let i = 0; i < n; i++) {
-		const pathName = await getRandomGhostPathname(ghosts)
-		createLinkToGhost(pathName, pathToLinksDir)
+	for (let c = 1; c <= 10; c++) {
+		for (let s = 1; s <= 10; s++) {
+			const sessionGhosts = ghosts.filter((v) => v.includes(`c-${c} s-${s}`))
+			const pathName = await getRandomGhostPathname(sessionGhosts)
+			createLinkToGhost(pathName, pathToLinksDir)
+			// ? first and last
+			createLinkToGhost(sessionGhosts[0], pathToLinksDir)
+			createLinkToGhost(sessionGhosts[sessionGhosts.length - 1], pathToLinksDir)
+		}
 	}
 }
 
