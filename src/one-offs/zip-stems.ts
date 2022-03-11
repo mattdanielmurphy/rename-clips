@@ -9,24 +9,28 @@ function getNonHiddenFilesInDir(pathToDir: string): string[] {
 	return fs.readdirSync(pathToDir).filter((name) => !name.startsWith('.'))
 }
 
+function renameStemToPrettyName(originalName: string, pathToDir: string) {
+	const bpm = /bpm=(\d{2,3})/.exec(originalName)[1]
+	const ghostNumber = /#(\d{1,4})/.exec(originalName)[1]
+	const nameOfActualStem = /stem=\[([\w\s]*)\]/.exec(originalName)[1]
+
+	const prettyNameOfActualStem = prettyNames[nameOfActualStem]
+	const newName = `${prettyNameOfActualStem} - GOFD #${ghostNumber} - ${bpm} BPM.wav`
+
+	const pathToOriginalName = path.join(pathToDir, originalName)
+	const pathToNewName = path.join(pathToDir, newName)
+	fs.renameSync(pathToOriginalName, pathToNewName)
+
+	return newName
+}
+
 function renameStemsToPrettyNames(
 	originalStemNames: string[],
 	pathToDir: string,
 ) {
-	const renamedStems = originalStemNames.map((originalName) => {
-		const bpm = /bpm=(\d{2,3})/.exec(originalName)[1]
-		const ghostNumber = /#(\d{1,4})/.exec(originalName)[1]
-		const nameOfActualStem = /stem=\[([\w\s]*)\]/.exec(originalName)[1]
-
-		const prettyNameOfActualStem = prettyNames[nameOfActualStem]
-		const newName = `${prettyNameOfActualStem} - GOFD #${ghostNumber} - ${bpm} BPM.wav`
-
-		const pathToOriginalName = path.join(pathToDir, originalName)
-		const pathToNewName = path.join(pathToDir, newName)
-		fs.renameSync(pathToOriginalName, pathToNewName)
-
-		return newName
-	})
+	const renamedStems = originalStemNames.map((originalName) =>
+		renameStemToPrettyName(originalName, pathToDir),
+	)
 
 	return renamedStems
 }
@@ -57,11 +61,29 @@ function zipStems(
 	pathToZippedStemsDir: string,
 	dirName: string,
 	stemNames: string[],
+	drumlessStems: { [key: number]: string },
 ) {
 	var zip = new AdmZip()
 	// ? add each stem to zip file
 	stemNames.forEach((stemName) =>
 		zip.addLocalFile(path.join(pathToDir, stemName)),
+	)
+
+	// ? add drumless version
+	const originalDrumlessName = drumlessStems[dirName]
+	const pathToDrumlessDir = path.join(pathToDir, '../../', 'drumless')
+	// ? rename drumless version
+	const newDrumlessName = renameStemToPrettyName(
+		originalDrumlessName,
+		pathToDrumlessDir,
+	)
+
+	zip.addLocalFile(path.join(pathToDrumlessDir, newDrumlessName))
+
+	// ? restore drumless name
+	fs.renameSync(
+		path.join(pathToDrumlessDir, newDrumlessName),
+		path.join(pathToDrumlessDir, originalDrumlessName),
 	)
 
 	// ? write to disk
@@ -98,17 +120,19 @@ const subContainingDirs = getNonHiddenFilesInDir(pathToContainingDir)
 
 subContainingDirs.forEach((subContainingDir) => {
 	// dir = 1-1000, etc
-	if (
-		['1-1000', '1001-2000', '7001-8000', '8001-9000', '9001-10000'].includes(
-			subContainingDir,
-		)
-	)
+	if (['7001-8000', '8001-9000', '9001-10000'].includes(subContainingDir))
 		return
 
 	const pathToStemsInSubContainingDir = path.join(
 		pathToContainingDir,
 		subContainingDir,
 		'stems',
+	)
+
+	const pathToDrumlessInSubContainingDir = path.join(
+		pathToContainingDir,
+		subContainingDir,
+		'drumless',
 	)
 
 	// ? create zipped-stems dir
@@ -122,22 +146,31 @@ subContainingDirs.forEach((subContainingDir) => {
 
 	console.log(`Processing subfolder ${subContainingDir}...`)
 
+	const drumlessStems = {}
+	const drumlessStemsOriginalNames = getNonHiddenFilesInDir(
+		pathToDrumlessInSubContainingDir,
+	)
+	drumlessStemsOriginalNames.forEach((drumless) => {
+		const ghostNumber = /#(\d{1,4})/.exec(drumless)[1]
+		drumlessStems[ghostNumber] = drumless
+	})
+
 	dirs.forEach((dirName) => {
-		if (+dirName < 2750) return
+		if (+dirName == 2750) return
 		console.log(`zipping stem ${dirName}...`)
 		const pathToDir = path.join(pathToStemsInSubContainingDir, dirName)
 		const originalStemNames = getNonHiddenFilesInDir(pathToDir)
 		const stemNames = renameStemsToPrettyNames(originalStemNames, pathToDir)
 
-		zipStems(pathToDir, pathToZippedStemsDir, dirName, stemNames)
+		zipStems(pathToDir, pathToZippedStemsDir, dirName, stemNames, drumlessStems)
 		restoreOriginalStemNames(pathToDir, stemNames, originalStemNames)
 	})
 })
 
 console.log(
 	'✔ Done in',
-	(Date.now() - startTime).toLocaleString('en-CA'),
-	'ms.',
+	(Date.now() - startTime * 1000).toLocaleString('en-CA'),
+	's.',
 )
 
 export {}
