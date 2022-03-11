@@ -6,7 +6,8 @@
   "license": "MIT",
   "scripts": {
     "start": "tsnd index.ts",
-    "dev": "tsnd index.ts"
+    "dev": "tsnd index.ts",
+    "tsnd": "tsnd"
   },
   "devDependencies": {
     "@types/node": "^17.0.10",
