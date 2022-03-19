@@ -67,13 +67,13 @@ function getIdOfStem(ghostNumber: string, sampleOrStemName: string) {
 	const db = new JSONdb(process.cwd() + '/samples.json')
 	const samples = db.JSON()
 	if (sampleOrStemName.includes('5PITCH')) {
-		const { id } = Object.values(samples).find(({ sampleIndex }) => {
-			return sampleIndex === ghostNumber
+		const { id } = Object.values(samples).find(({ sampleNumber }) => {
+			return sampleNumber === ghostNumber
 		})
 		return id
 	} else {
-		const { stems } = Object.values(samples).find(({ sampleIndex }) => {
-			return sampleIndex === ghostNumber
+		const { stems } = Object.values(samples).find(({ sampleNumber }) => {
+			return sampleNumber === ghostNumber
 		})
 		const { id } = stems.find(
 			(stemName: string) => stemName === sampleOrStemName,
