@@ -94,16 +94,22 @@ function renameStemOrSample(
 	let newFilename = ''
 	Object.entries(prettyNames).forEach(([ugly, pretty], stemIndex) => {
 		if (filename.includes(ugly)) {
+			console.log(ugly, pretty)
+			console.log('getting id for stem ' + sampleOrStemName)
 			const id = getIdOfStem(correctedGhostNumber, sampleOrStemName)
+			console.log('id', id)
 			newFilename = `${sampleOrStemName.replace(ugly, pretty)} id=[${id}].wav`
+			console.log('new filename', newFilename)
 
 			const pathToExistingStem = path.join(pathToContainingDir, filename)
 			const pathToNewStem = path.join(pathToContainingDir, newFilename)
 
+			console.log(pathToExistingStem, pathToNewStem)
+
 			fs.rename(pathToExistingStem, pathToNewStem, (err) => {
 				if (err) throw err
 			})
-		}
+		} else console.log('ugly name not found!', filename)
 	})
 	return newFilename
 }
