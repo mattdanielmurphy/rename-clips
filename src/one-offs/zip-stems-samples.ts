@@ -180,6 +180,9 @@ async function zipStems() {
 			await uploadToS3(s3, pathToStem, 'stems')
 		}
 
+		const pathToSample = path.join(pathToContainingDir, renamedSample)
+		await uploadToS3(s3, pathToSample, 'samples')
+
 		// ? ZIP FILES
 
 		console.log('ZIPPING STEMS...\n')
