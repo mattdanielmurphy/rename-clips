@@ -86,6 +86,7 @@ function renameStemOrSample(
 	filename: string,
 	sampleOrStemName: string,
 	correctedGhostNumber: string,
+	pathToContainingDir: string,
 ) {
 	let newFilename = ''
 	Object.entries(prettyNames).forEach(([ugly, pretty], stemIndex) => {
@@ -137,6 +138,7 @@ async function zipStems() {
 			sampleFilename,
 			stemName,
 			correctedGhostNumber,
+			pathToContainingDir,
 		)
 
 		const stemsForThisSample = samplesAndStems.filter((name) =>
@@ -150,6 +152,7 @@ async function zipStems() {
 					stemFilename,
 					stemName,
 					correctedGhostNumber,
+					pathToContainingDir,
 				)
 				return renamedStemFilename
 			},
