@@ -69,6 +69,7 @@ function getIdOfStem(ghostNumber: string, sampleOrStemName: string) {
 	if (sampleOrStemName.includes('5PITCH')) {
 		const { id } = Object.values(samples).find(({ sampleNumber }) => {
 			sampleNumber = String(sampleNumber)
+			console.log(sampleNumber, ghostNumber)
 			return sampleNumber === ghostNumber
 		})
 		return id
