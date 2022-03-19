@@ -5,8 +5,6 @@ import fs from 'fs'
 import path from 'path'
 import { resolve } from 'path/posix'
 
-const startTime = Date.now()
-
 // ? functions
 function getNonHiddenFilesInDir(pathToDir: string): string[] {
 	return fs.readdirSync(pathToDir).filter((name) => !name.startsWith('.'))
@@ -63,13 +61,19 @@ const prettyNames = {
 	'5PITCH MELODIC': 'Sample',
 }
 
+const trackIndexes = {
+	'2FILT MAIN': 0,
+	'2FILT MEL1': 1,
+	'1Drums': 3,
+	'3J37 Perc': 4,
+}
+
 function getIdOfStem(ghostNumber: string, sampleOrStemName: string) {
 	const db = new JSONdb(process.cwd() + '/samples.json')
 	const samples = db.JSON()
 	if (sampleOrStemName.includes('5PITCH')) {
 		const { id } = Object.values(samples).find(({ sampleNumber }) => {
 			sampleNumber = String(sampleNumber)
-			console.log(sampleNumber, ghostNumber)
 			return sampleNumber === ghostNumber
 		})
 		return id
@@ -78,9 +82,9 @@ function getIdOfStem(ghostNumber: string, sampleOrStemName: string) {
 			sampleNumber = String(sampleNumber)
 			return sampleNumber === ghostNumber
 		})
-		const { id } = stems.find(
-			(stemName: string) => stemName === sampleOrStemName,
-		)
+
+		const trackIndex = trackIndexes[sampleOrStemName]
+		const { id } = stems[trackIndex]
 		return id
 	}
 }
@@ -94,22 +98,16 @@ function renameStemOrSample(
 	let newFilename = ''
 	Object.entries(prettyNames).forEach(([ugly, pretty], stemIndex) => {
 		if (filename.includes(ugly)) {
-			console.log(ugly, pretty)
-			console.log('getting id for stem ' + sampleOrStemName)
 			const id = getIdOfStem(correctedGhostNumber, sampleOrStemName)
-			console.log('id', id)
 			newFilename = `${sampleOrStemName.replace(ugly, pretty)} id=[${id}].wav`
-			console.log('new filename', newFilename)
 
 			const pathToExistingStem = path.join(pathToContainingDir, filename)
 			const pathToNewStem = path.join(pathToContainingDir, newFilename)
 
-			console.log(pathToExistingStem, pathToNewStem)
-
 			fs.rename(pathToExistingStem, pathToNewStem, (err) => {
 				if (err) throw err
 			})
-		} else console.log('ugly name not found!', filename, sampleOrStemName)
+		}
 	})
 	return newFilename
 }
@@ -136,16 +134,13 @@ async function zipStems() {
 		name.includes('5PITCH'),
 	)
 
-	const samplesAndStems = getNonHiddenFilesInDir(pathToContainingDir)
-
-	for (const sampleFilename of samples) {
+	for (const [i, sampleFilename] of Object.entries(samples)) {
+		console.log('RENAMING FILES...\n')
+		const startTime = Date.now()
 		const [, uncorrectedGhostNumber, stemName] = /^(\d{1,4}) ([^\.]*).wav/.exec(
 			sampleFilename,
 		)
 
-		console.log('ghost number: ' + uncorrectedGhostNumber)
-
-		// const correctedGhostNumber = String(+uncorrectedGhostNumber - 700)
 		const correctedGhostNumber = uncorrectedGhostNumber
 
 		const renamedSample = renameStemOrSample(
@@ -163,13 +158,9 @@ async function zipStems() {
 				name.startsWith(uncorrectedGhostNumber + ' '),
 		)
 
-		console.log('stems for this sample:', stemsForThisSample)
-
 		const renamedStemFilenamesForThisSample = stemsForThisSample.map(
 			(stemFilename) => {
-				const regexResults = /^(\d{1,4}) (.*).wav/.exec(sampleFilename)
-				console.log(sampleFilename, regexResults)
-				const [, uncorrectedGhostNumber, stemName] = regexResults
+				const [, , stemName] = /^(\d{1,4}) (.*).wav/.exec(stemFilename)
 				const renamedStemFilename = renameStemOrSample(
 					stemFilename,
 					stemName,
@@ -180,32 +171,45 @@ async function zipStems() {
 			},
 		)
 
-		console.log(renamedStemFilenamesForThisSample)
+		// ? UPLOAD STEMS TO S3
+		console.log('UPLOADING STEMS...\n')
 
-		// // ? UPLOAD STEMS TO S3
+		for (const stem of renamedStemFilenamesForThisSample) {
+			const pathToStem = path.join(pathToContainingDir, stem)
+			await uploadToS3(s3, pathToStem, 'stems')
+		}
 
-		// for (const stem of renamedStemFilenamesForThisSample) {
-		// 	const pathToStem = path.join(pathToContainingDir, stem)
-		// 	await uploadToS3(s3, pathToStem, 'stems')
-		// }
+		// ? ZIP FILES
 
-		// // ? upload zips
+		console.log('ZIPPING STEMS...\n')
 
-		// const zipFilename = renamedSample.replace('.wav', '.zip')
-		// const pathToZipFile = addStemsToZipFileAndSave(
-		// 	renamedStemFilenamesForThisSample,
-		// 	pathToContainingDir,
-		// 	pathToZippedStemsDir,
-		// 	zipFilename,
-		// )
-		// await uploadToS3(s3, pathToZipFile, 'stems-zipped')
+		const zipFilename = renamedSample.replace('.wav', '.zip')
+		const pathToZipFile = addStemsToZipFileAndSave(
+			renamedStemFilenamesForThisSample,
+			pathToContainingDir,
+			pathToZippedStemsDir,
+			zipFilename,
+		)
+
+		// ? upload zips
+
+		console.log('UPLOADING ZIP FILES...\n')
+		await uploadToS3(s3, pathToZipFile, 'stems-zipped')
+		console.log(
+			'\n✔  Done in',
+			((Date.now() - startTime) / 1000).toLocaleString('en-CA'),
+			's.',
+		)
+		console.log(
+			`Finished ${+i + 1}/${samples.length} samples.${
+				+i < samples.length - 1
+					? `.. estimated time remaining = ${
+							((Date.now() - startTime) / 1000) * (samples.length - +i - 1)
+					  }s\n`
+					: ''
+			}`,
+		)
 	}
-
-	console.log(
-		'✔ Done in',
-		((Date.now() - startTime) / 1000).toLocaleString('en-CA'),
-		's.',
-	)
 }
 
 zipStems()
