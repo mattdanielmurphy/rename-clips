@@ -23,30 +23,28 @@ function addStemsToZipFileAndSave(
 	)
 
 	// ? write to disk
-	// const bpm = /(\d{2,3}) BPM/.exec(stemNames[0])[1]
-	// const fileName = `GOFD #${dirName} - ${bpm} BPM.zip`
 	const pathToZip = path.join(pathToZippedStemsDir, zipFilename)
 	zip.writeZip(pathToZip)
 	return pathToZip
 }
 
 async function uploadToS3(s3, pathToZipFile, s3Dir) {
-	const fileContent = fs.readFileSync(pathToZipFile)
-	const fileName = path.basename(pathToZipFile)
-	const pathToZippedStemOnS3 = path.join(s3Dir, fileName)
-	const params = {
-		Bucket: 'ghost-sample-library',
-		Key: pathToZippedStemOnS3,
-		Body: fileContent,
-	}
-	console.log('uploading to s3...')
-	await new Promise((resolve, reject) => {
-		s3.upload(params, (err, data) => {
-			if (err) reject(err)
-			console.log('file uploaded', data?.Key)
-			resolve('')
-		})
-	})
+	// const fileContent = fs.readFileSync(pathToZipFile)
+	// const fileName = path.basename(pathToZipFile)
+	// const pathToZippedStemOnS3 = path.join(s3Dir, fileName)
+	// const params = {
+	// 	Bucket: 'ghost-sample-library',
+	// 	Key: pathToZippedStemOnS3,
+	// 	Body: fileContent,
+	// }
+	// console.log('uploading to s3...')
+	// await new Promise((resolve, reject) => {
+	// 	s3.upload(params, (err, data) => {
+	// 		if (err) reject(err)
+	// 		console.log('file uploaded', data?.Key)
+	// 		resolve('')
+	// 	})
+	// })
 }
 
 //
@@ -73,20 +71,26 @@ function getIdOfStem(ghostNumber: string, sampleOrStemName: string) {
 	const samples = db.JSON()
 	if (sampleOrStemName.includes('5PITCH')) {
 		const { id } = Object.values(samples).find(({ sampleNumber }) => {
-			sampleNumber = String(sampleNumber)
-			return sampleNumber === ghostNumber
+			return sampleNumber === +ghostNumber
 		})
 		return id
 	} else {
 		const { stems } = Object.values(samples).find(({ sampleNumber }) => {
-			sampleNumber = String(sampleNumber)
-			return sampleNumber === ghostNumber
+			return sampleNumber === +ghostNumber
 		})
 
 		const trackIndex = trackIndexes[sampleOrStemName]
 		const { id } = stems[trackIndex]
 		return id
 	}
+}
+
+function getBPMOfStem(ghostNumber: string) {
+	const bpmDb = new JSONdb(process.cwd() + '/bpms.json')
+	const bpms = bpmDb.JSON()
+	const bpmIndex = (+ghostNumber - 1) % 1000
+	const bpm = bpms[bpmIndex]
+	return bpm
 }
 
 function renameStemOrSample(
@@ -99,7 +103,11 @@ function renameStemOrSample(
 	Object.entries(prettyNames).forEach(([ugly, pretty], stemIndex) => {
 		if (filename.includes(ugly)) {
 			const id = getIdOfStem(correctedGhostNumber, sampleOrStemName)
-			newFilename = `${sampleOrStemName.replace(ugly, pretty)} id=[${id}].wav`
+			const bpm = getBPMOfStem(correctedGhostNumber)
+			newFilename = `${sampleOrStemName.replace(
+				ugly,
+				pretty,
+			)} ${bpm} bpm - id=[${id}].wav`
 
 			const pathToExistingStem = path.join(pathToContainingDir, filename)
 			const pathToNewStem = path.join(pathToContainingDir, newFilename)
@@ -135,7 +143,7 @@ async function zipStems() {
 	)
 
 	for (const [i, sampleFilename] of Object.entries(samples)) {
-		console.log('RENAMING FILES...\n')
+		console.log('RENAMING FILES...')
 		const startTime = Date.now()
 		const [, uncorrectedGhostNumber, stemName] = /^(\d{1,4}) ([^\.]*).wav/.exec(
 			sampleFilename,
@@ -173,7 +181,7 @@ async function zipStems() {
 		)
 
 		// ? UPLOAD STEMS TO S3
-		console.log('UPLOADING STEMS...\n')
+		console.log('UPLOADING STEMS...')
 
 		for (const stem of renamedStemFilenamesForThisSample) {
 			const pathToStem = path.join(pathToContainingDir, stem)
@@ -182,6 +190,9 @@ async function zipStems() {
 
 		const pathToSample = path.join(pathToContainingDir, renamedSample)
 		await uploadToS3(s3, pathToSample, 'samples')
+
+		// ? ADD SAMPLE TO ZIP FOLDER
+		renamedStemFilenamesForThisSample.push(pathToSample)
 
 		// ? ZIP FILES
 
