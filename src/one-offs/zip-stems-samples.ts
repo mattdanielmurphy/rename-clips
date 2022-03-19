@@ -137,6 +137,8 @@ async function zipStems() {
 			sampleFilename,
 		)
 
+		console.log('ghost number: ' + uncorrectedGhostNumber)
+
 		// const correctedGhostNumber = String(+uncorrectedGhostNumber - 700)
 		const correctedGhostNumber = uncorrectedGhostNumber
 
@@ -154,6 +156,8 @@ async function zipStems() {
 				!name.includes('5PITCH') &&
 				name.startsWith(uncorrectedGhostNumber + ' '),
 		)
+
+		console.log('stems for this sample:', stemsForThisSample)
 
 		const renamedStemFilenamesForThisSample = stemsForThisSample.map(
 			(stemFilename) => {
