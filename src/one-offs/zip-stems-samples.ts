@@ -130,7 +130,7 @@ async function zipStems() {
 	const samplesAndStems = getNonHiddenFilesInDir(pathToContainingDir)
 
 	for (const sampleFilename of samples) {
-		const [, uncorrectedGhostNumber, stemName] = /(\d{1,4}) (^[\.]*).wav/.exec(
+		const [, uncorrectedGhostNumber, stemName] = /(\d{1,4}) ([^\.]*).wav/.exec(
 			sampleFilename,
 		)
 
