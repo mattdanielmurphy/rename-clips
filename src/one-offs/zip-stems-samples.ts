@@ -130,7 +130,9 @@ async function zipStems() {
 	const samplesAndStems = getNonHiddenFilesInDir(pathToContainingDir)
 
 	for (const sampleFilename of samples) {
-		const [uncorrectedGhostNumber, stemName] = sampleFilename.split(' ')
+		const [, uncorrectedGhostNumber, stemName] = /(\d{1,4}) (^[\.]*).wav/.exec(
+			sampleFilename,
+		)
 
 		const correctedGhostNumber = String(+uncorrectedGhostNumber - 700)
 
@@ -147,7 +149,8 @@ async function zipStems() {
 
 		const renamedStemFilenamesForThisSample = stemsForThisSample.map(
 			(stemFilename) => {
-				const [ghostNumber, stemName] = stemFilename.split(' ')
+				const [, uncorrectedGhostNumber, stemName] =
+					/(\d{1,4}) (^[\.]*).wav/.exec(sampleFilename)
 				const renamedStemFilename = renameStemOrSample(
 					stemFilename,
 					stemName,
