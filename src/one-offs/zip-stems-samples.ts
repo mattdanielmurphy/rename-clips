@@ -43,7 +43,7 @@ async function uploadToS3(s3, pathToZipFile, s3Dir) {
 	await new Promise((resolve, reject) => {
 		s3.upload(params, (err, data) => {
 			if (err) reject(err)
-			console.log('file uploaded', data)
+			console.log('file uploaded', data?.Key)
 			resolve('')
 		})
 	})
