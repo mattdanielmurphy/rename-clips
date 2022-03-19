@@ -109,7 +109,7 @@ function renameStemOrSample(
 			fs.rename(pathToExistingStem, pathToNewStem, (err) => {
 				if (err) throw err
 			})
-		} else console.log('ugly name not found!', filename)
+		} else console.log('ugly name not found!', filename, sampleOrStemName)
 	})
 	return newFilename
 }
@@ -167,8 +167,9 @@ async function zipStems() {
 
 		const renamedStemFilenamesForThisSample = stemsForThisSample.map(
 			(stemFilename) => {
-				const [, uncorrectedGhostNumber, stemName] =
-					/(\d{1,4}) ([^\.]*).wav/.exec(sampleFilename)
+				const regexResults = /(\d{1,4}) ([^\.]*).wav/.exec(sampleFilename)
+				console.log(sampleFilename, regexResults)
+				const [, uncorrectedGhostNumber, stemName] = regexResults
 				const renamedStemFilename = renameStemOrSample(
 					stemFilename,
 					stemName,
