@@ -147,8 +147,12 @@ async function zipStems() {
 			pathToContainingDir,
 		)
 
-		const stemsForThisSample = samplesAndStems.filter((name) =>
-			name.startsWith(uncorrectedGhostNumber + ' '),
+		const stemsForThisSample = getNonHiddenFilesInDir(
+			pathToContainingDir,
+		).filter(
+			(name) =>
+				!name.includes('5PITCH') &&
+				name.startsWith(uncorrectedGhostNumber + ' '),
 		)
 
 		const renamedStemFilenamesForThisSample = stemsForThisSample.map(
@@ -165,23 +169,25 @@ async function zipStems() {
 			},
 		)
 
-		// ? UPLOAD STEMS TO S3
+		console.log(renamedStemFilenamesForThisSample)
 
-		for (const stem of renamedStemFilenamesForThisSample) {
-			const pathToStem = path.join(pathToContainingDir, stem)
-			await uploadToS3(s3, pathToStem, 'stems')
-		}
+		// // ? UPLOAD STEMS TO S3
 
-		// ? upload zips
+		// for (const stem of renamedStemFilenamesForThisSample) {
+		// 	const pathToStem = path.join(pathToContainingDir, stem)
+		// 	await uploadToS3(s3, pathToStem, 'stems')
+		// }
 
-		const zipFilename = renamedSample.replace('.wav', '.zip')
-		const pathToZipFile = addStemsToZipFileAndSave(
-			renamedStemFilenamesForThisSample,
-			pathToContainingDir,
-			pathToZippedStemsDir,
-			zipFilename,
-		)
-		await uploadToS3(s3, pathToZipFile, 'stems-zipped')
+		// // ? upload zips
+
+		// const zipFilename = renamedSample.replace('.wav', '.zip')
+		// const pathToZipFile = addStemsToZipFileAndSave(
+		// 	renamedStemFilenamesForThisSample,
+		// 	pathToContainingDir,
+		// 	pathToZippedStemsDir,
+		// 	zipFilename,
+		// )
+		// await uploadToS3(s3, pathToZipFile, 'stems-zipped')
 	}
 
 	console.log(
