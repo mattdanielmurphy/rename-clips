@@ -85,12 +85,12 @@ function getIdOfStem(ghostNumber: string, sampleOrStemName: string) {
 function renameStemOrSample(
 	filename: string,
 	sampleOrStemName: string,
-	ghostNumber: string,
+	correctedGhostNumber: string,
 ) {
 	let newFilename = ''
 	Object.entries(prettyNames).forEach(([ugly, pretty], stemIndex) => {
 		if (filename.includes(ugly)) {
-			const id = getIdOfStem(ghostNumber, sampleOrStemName)
+			const id = getIdOfStem(correctedGhostNumber, sampleOrStemName)
 			newFilename = `${sampleOrStemName.replace(ugly, pretty)} id=[${id}].wav`
 
 			const pathToExistingStem = path.join(pathToContainingDir, filename)
@@ -129,15 +129,18 @@ async function zipStems() {
 	const samplesAndStems = getNonHiddenFilesInDir(pathToContainingDir)
 
 	for (const sampleFilename of samples) {
-		const [ghostNumber, stemName] = sampleFilename.split(' ')
+		const [uncorrectedGhostNumber, stemName] = sampleFilename.split(' ')
+
+		const correctedGhostNumber = String(+uncorrectedGhostNumber - 700)
+
 		const renamedSample = renameStemOrSample(
 			sampleFilename,
 			stemName,
-			ghostNumber,
+			correctedGhostNumber,
 		)
 
 		const stemsForThisSample = samplesAndStems.filter((name) =>
-			name.startsWith(ghostNumber + ' '),
+			name.startsWith(uncorrectedGhostNumber + ' '),
 		)
 
 		const renamedStemFilenamesForThisSample = stemsForThisSample.map(
@@ -146,7 +149,7 @@ async function zipStems() {
 				const renamedStemFilename = renameStemOrSample(
 					stemFilename,
 					stemName,
-					ghostNumber,
+					correctedGhostNumber,
 				)
 				return renamedStemFilename
 			},
