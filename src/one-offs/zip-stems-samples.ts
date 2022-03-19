@@ -29,22 +29,22 @@ function addStemsToZipFileAndSave(
 }
 
 async function uploadToS3(s3, pathToZipFile, s3Dir) {
-	// const fileContent = fs.readFileSync(pathToZipFile)
-	// const fileName = path.basename(pathToZipFile)
-	// const pathToZippedStemOnS3 = path.join(s3Dir, fileName)
-	// const params = {
-	// 	Bucket: 'ghost-sample-library',
-	// 	Key: pathToZippedStemOnS3,
-	// 	Body: fileContent,
-	// }
-	// console.log('uploading to s3...')
-	// await new Promise((resolve, reject) => {
-	// 	s3.upload(params, (err, data) => {
-	// 		if (err) reject(err)
-	// 		console.log('file uploaded', data?.Key)
-	// 		resolve('')
-	// 	})
-	// })
+	const fileContent = fs.readFileSync(pathToZipFile)
+	const fileName = path.basename(pathToZipFile)
+	const pathToZippedStemOnS3 = path.join(s3Dir, fileName)
+	const params = {
+		Bucket: 'ghost-sample-library',
+		Key: pathToZippedStemOnS3,
+		Body: fileContent,
+	}
+	console.log('uploading to s3...')
+	await new Promise((resolve, reject) => {
+		s3.upload(params, (err, data) => {
+			if (err) reject(err)
+			console.log('file uploaded', data?.Key)
+			resolve('')
+		})
+	})
 }
 
 //
@@ -138,8 +138,8 @@ async function zipStems() {
 		throw Error('Must provide path to zipped-stems directory.')
 	}
 
-	const samples = getNonHiddenFilesInDir(pathToContainingDir).filter((name) =>
-		name.includes('5PITCH'),
+	const samples = getNonHiddenFilesInDir(pathToContainingDir).filter(
+		(name) => name.includes('5PITCH') && /^\d{1,3} /.test(name),
 	)
 
 	for (const [i, sampleFilename] of Object.entries(samples)) {
@@ -149,8 +149,8 @@ async function zipStems() {
 			sampleFilename,
 		)
 
-		const correctedGhostNumber = String(+uncorrectedGhostNumber - 700)
-		// const correctedGhostNumber = uncorrectedGhostNumber
+		// const correctedGhostNumber = String(+uncorrectedGhostNumber - 700)
+		const correctedGhostNumber = uncorrectedGhostNumber
 
 		const renamedSample = renameStemOrSample(
 			sampleFilename,
@@ -185,14 +185,14 @@ async function zipStems() {
 
 		for (const stem of renamedStemFilenamesForThisSample) {
 			const pathToStem = path.join(pathToContainingDir, stem)
-			await uploadToS3(s3, pathToStem, 'stems')
+			// await uploadToS3(s3, pathToStem, 'stems')
 		}
 
 		const pathToSample = path.join(pathToContainingDir, renamedSample)
 		await uploadToS3(s3, pathToSample, 'samples')
 
 		// ? ADD SAMPLE TO ZIP FOLDER
-		renamedStemFilenamesForThisSample.push(pathToSample)
+		renamedStemFilenamesForThisSample.push(renamedSample)
 
 		// ? ZIP FILES
 
