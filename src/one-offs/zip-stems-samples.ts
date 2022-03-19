@@ -152,7 +152,7 @@ async function zipStems() {
 		const renamedStemFilenamesForThisSample = stemsForThisSample.map(
 			(stemFilename) => {
 				const [, uncorrectedGhostNumber, stemName] =
-					/(\d{1,4}) (^[\.]*).wav/.exec(sampleFilename)
+					/(\d{1,4}) ([^\.]*).wav/.exec(sampleFilename)
 				const renamedStemFilename = renameStemOrSample(
 					stemFilename,
 					stemName,
