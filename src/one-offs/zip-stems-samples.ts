@@ -141,7 +141,8 @@ async function zipStems() {
 			sampleFilename,
 		)
 
-		const correctedGhostNumber = uncorrectedGhostNumber
+		const correctedGhostNumber = String(+uncorrectedGhostNumber - 700)
+		// const correctedGhostNumber = uncorrectedGhostNumber
 
 		const renamedSample = renameStemOrSample(
 			sampleFilename,
