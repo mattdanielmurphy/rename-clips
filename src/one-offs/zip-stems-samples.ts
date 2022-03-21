@@ -139,7 +139,7 @@ async function zipStems() {
 	}
 
 	const samples = getNonHiddenFilesInDir(pathToContainingDir).filter(
-		(name) => name.includes('5PITCH') && /^\d{1,3} /.test(name),
+		(name) => name.includes('5PITCH') && /^\d{1,4} /.test(name),
 	)
 
 	for (const [i, sampleFilename] of Object.entries(samples)) {
