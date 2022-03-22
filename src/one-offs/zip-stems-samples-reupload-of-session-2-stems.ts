@@ -106,8 +106,6 @@ function renameStemOrSample(
 	let newFilename = ''
 	Object.entries(prettyNames).forEach(([ugly, pretty], stemIndex) => {
 		if (filename.includes(ugly)) {
-			const wrongId = getIdOfStem(wronglyCorrectedGhostNumber, sampleOrStemName)
-			if (!stemIdsToRename.includes(wrongId)) return
 			const id = getIdOfStem(correctedGhostNumber, sampleOrStemName)
 
 			const bpm = getBPMOfStem(correctedGhostNumber)
@@ -186,6 +184,7 @@ async function zipStems() {
 					wronglyCorrectedGhostNumber,
 					pathToContainingDir,
 				)
+
 				return renamedStemFilename
 			},
 		)
