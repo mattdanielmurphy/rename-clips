@@ -18,6 +18,7 @@
   "dependencies": {
     "adm-zip": "^0.5.9",
     "aws-sdk": "^2.1091.0",
+    "base58": "^2.0.1",
     "fluent-ffmpeg": "^2.1.2",
     "simple-json-db": "^1.2.3",
     "ts-node-dev": "^1.1.8"
