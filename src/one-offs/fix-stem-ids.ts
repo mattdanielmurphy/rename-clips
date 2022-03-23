@@ -1,35 +1,16 @@
-//* 1. modify samples.json, adding alt IDs to Session 2 and creating new stem IDs for Session 2
-//*    1. for each sample,
-//*       1. for each stem
-//*          1. get ID and insert that in the sample that is +1000 from that sample IF IN `uploaded-stem-ids.json`
-//*    2. to create new IDs, use an `overallIndex + 1` of the last Sample ID
-
-interface Sample {
-	sourceFilename: string
-	sessionNumber: number
-	indexInFile: number
-	sampleNumber: number
-	overallIndex: number
-	sampleIndex: number
-	stems: {
-		id: string
-		name: string
-		trackIndex: number
-	}[]
-	id: string
-}
+import { Sample } from './interfaces'
 
 const JSONdb = require('simple-json-db')
 const Base58 = require('base58')
 
-const existingSamplesDb = new JSONdb(
-	'original-stems-and-samples-dbs/samples.json',
-)
 const uploadedStemIdsDb = new JSONdb('uploaded-stem-ids.json')
 const uploadedStemIdsObject = uploadedStemIdsDb.JSON()
 const uploadedStemIds = Object.keys(uploadedStemIdsObject)
 const newSamplesDb = new JSONdb('new-samples.json', { jsonSpaces: 2 })
 
+const existingSamplesDb = new JSONdb(
+	'original-stems-and-samples-dbs/samples.json',
+)
 const existingSamplesObject = existingSamplesDb.JSON()
 const existingSamples = Object.values(existingSamplesObject)
 const newSamplesObject = Object.assign({}, existingSamplesObject)

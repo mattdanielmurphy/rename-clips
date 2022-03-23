@@ -29,35 +29,50 @@ Therefore,
 
 **when someone downloads a *sample***
 - ✅ the id is Session **1**, the file is Session **1**
+- I BELIEVE THE ABOVE IS WRONG
 
 **when someone downloads a *zip of stems***
 - ✅ the id for the zip is Session **1**, the file is Session **1**
 - ✅ the id for the stems is Session **1**, and the file is Session **1**
-session 2 did not overwrite session 1 files here because Sample IDs are unique across sessions
+session 2 did not overwrite session 1 files here because ~~Sample IDs are unique across sessions~~ this is not true, because while the IDs are unique across sessions, it was still reading from the session 1 data...
 However, the session 2 zips have session 1 IDs inside them
 
 ### What to do
-Store Session 1 stem IDs as an alt ID for Session 2, and create new stem IDs for Session 2
+Store Session 1 stem IDs as an alt ID for Session 2, and create new stem IDs for Session 1
+
+**session 2 IDs have never been used**
+**some session 1 IDs are now alt-IDs for session 2 stems**
 
 #### Steps to complete
-1. ~~modify samples.json, adding alt IDs to Session 2 and creating new stem IDs for Session 2~~
+1. ~~modify samples.json, adding alt IDs to Session 2 and creating new stem IDs for Session 1~~
    1. ~~for each sample,~~
       1. ~~for each stem~~
          1. ~~get ID and insert that in the sample that is +1000 from that sample~~
    2. ~~to create new IDs, use an `overallIndex + 1` of the last Sample ID~~
-2. Reupload stems for Session 1 and Session 2, Session 1 having original IDs and Session 2 having new IDs.
+2. Reupload stems for Session 1 and Session 2, Session 1 having new IDs and Session 2 having original IDs.
    - Luckily, the one Session files backup I made was for Session 2, so I don't need to re-render or unzip
-   1. ~~upload Session 1 stems~~
-   2. rename ids for Session 2 stems
-3. Reupload stems and zipped-stems of Session 2 with the new stem IDs (Sample IDs remain the same so will just replace the old files on S3)
-4. **not a priority because nobody will see them or download them:** delete zipped-stems and zipped-stems without BPMs on s3 (theyre last alphabetically, just go to page 4 or 5, select, and delete manually on s3 console website) because they wont be replaced with the new ones
+   1. **upload Session 1 stems with new IDs**
+   2. **rename ids for Session 2 stems**
+3. **Reupload stems and zipped-stems of Session 2 with the new stem IDs (Sample IDs remain the same so will just replace the old files on S3)**
+   3 TASKS ABOVE ARE IN PROGRESS ^
+
+4. get list of uploaded stems and sessions and replace the current one on the site
+
+
+5. **not a priority because nobody will see them or download them:** delete zipped-stems and zipped-stems without BPMs on s3 (theyre last alphabetically, just go to page 4 or 5, select, and delete manually on s3 console website) because they wont be replaced with the new ones
    - I wouldn't have to worry about figuring out which bpm-less stems and samples to delete if I know for sure that they're all Session 1.
-     - all *zipped-stems* in circulation have *no bpm*, (are session 2 files), *and must be deleted*
-     - all *samples* in circulation have *no bpm*, (are session 2 files), *and must be deleted*
-     - all *individual stems* in circulation *have bpm* (are session 2 files)
+
+Alright. Investigating with session files in Ableton:
+- audio in zipped-stem *does not* match session 1 audio for their IDs *-- checked with two files*
+- audio in stem *does* match session 1 audio for its ID *-- checked with two files*
 
 
-
+Therefore, I can continue as I was
+  - Session 1 IDs must be replaced with new ones so they stop conflicting with alt-IDs for session 2
+  - Session 2 IDs can remain as they were
+  - Session 2 FILES must be reuploaded with proper Session 2 IDs
+    - Session 2 zipped stems and samples *✅ DONE*
+    - Session 2 stems
 
 
 
